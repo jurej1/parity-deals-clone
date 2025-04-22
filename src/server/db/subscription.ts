@@ -4,5 +4,11 @@ import { UserSubscriptionTable } from "@/drizzle/schema";
 export async function createUserSubscription(
   data: typeof UserSubscriptionTable.$inferInsert
 ) {
-  return await db.insert(UserSubscriptionTable).values(data);
+  // if user exsists do NOTHING
+  return await db
+    .insert(UserSubscriptionTable)
+    .values(data)
+    .onConflictDoNothing({
+      target: UserSubscriptionTable.clerkUserId,
+    });
 }
