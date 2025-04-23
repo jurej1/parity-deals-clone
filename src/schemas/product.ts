@@ -6,3 +6,31 @@ export const productDetailsSchema = z.object({
   description: z.string().optional(),
   url: z.string().url().min(1, "Required").transform(removeTrailingSlash),
 });
+
+export const productCountryDiscountsSchema = z.object({
+  groups: z.array(
+    z
+      .object({
+        countryGroupId: z.string().min(1, "Required"),
+        discountPercentage: z
+          .number()
+          .max(100)
+          .min(1)
+          .or(z.nan())
+          .transform((n) => (isNaN(n) ? undefined : n))
+          .optional(),
+        coupon: z.string().optional(),
+      })
+      .refine(
+        (value) => {
+          const hasCoupone = value.coupon != null && value.coupon.length > 0;
+          const hasDiscount = value.discountPercentage != null;
+          return !(hasCoupone && !hasDiscount);
+        },
+        {
+          path: ["root"],
+          message: "A discount is required if a coupon code is provided",
+        }
+      )
+  ),
+});

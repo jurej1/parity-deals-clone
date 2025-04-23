@@ -3,11 +3,30 @@ import { ProductCustomizationTable, ProductTable } from "@/drizzle/schema";
 import {
   CACHE_TAGS,
   dbCache,
+  getGlobalTag,
   getIdTag,
   getUserTag,
   revalidateDbCache,
 } from "@/lib/cache";
 import { eq, and } from "drizzle-orm";
+
+export function getProductCountryGroups({
+  productId,
+  userId,
+}: {
+  productId: string;
+  userId: string;
+}) {
+  const cacheFn = dbCache(getProductCountryGroupsInternal, {
+    tags: [
+      getIdTag(productId, CACHE_TAGS.products),
+      getGlobalTag(CACHE_TAGS.countries),
+      getGlobalTag(CACHE_TAGS.countryGroups),
+    ],
+  });
+
+  return cacheFn({ productId, userId });
+}
 
 export function getProducts(userId: string, { limit }: { limit?: number }) {
   // when making a get request, tag it as specific as possible
@@ -113,5 +132,48 @@ export async function getProductInternal({
   return db.query.ProductTable.findFirst({
     where: ({ clerkUserId, id: idCol }, { eq }) =>
       and(eq(clerkUserId, userId), eq(idCol, id)),
+  });
+}
+
+async function getProductCountryGroupsInternal({
+  productId,
+  userId,
+}: {
+  productId: string;
+  userId: string;
+}) {
+  // get all of the groups && all the countries && all the discount codes which
+  // are associated with the groups
+
+  const product = await getProduct({ id: productId, userId });
+  if (product === null) return [];
+
+  const data = await db.query.CountryGroupTable.findMany({
+    with: {
+      countries: {
+        columns: {
+          code: true,
+          name: true,
+        },
+      },
+      countryGroupDiscounts: {
+        columns: {
+          coupon: true,
+          discountPercentage: true,
+        },
+        where: ({ productId: id }, { eq }) => eq(id, productId),
+        limit: 1,
+      },
+    },
+  });
+
+  return data.map((group) => {
+    return {
+      id: group.id,
+      name: group.name,
+      recommendedDiscountPercentage: group.recommendedDiscountPercentage,
+      countries: group.countries,
+      discount: group.countryGroupDiscounts.at(0),
+    };
   });
 }
