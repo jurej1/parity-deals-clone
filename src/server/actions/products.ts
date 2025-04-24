@@ -10,9 +10,9 @@ import {
   createProduct as createProductDb,
   deleteProduct as deleteProductDb,
   updateProduct as updateProductDb,
+  updateCountryDiscounts as updateCountryDiscountsDb,
 } from "../db/products";
 import { redirect } from "next/navigation";
-import { messageInRaw } from "svix";
 
 export async function createProduct(
   unsafeData: z.infer<typeof productDetailsSchema>
@@ -113,7 +113,7 @@ export async function updateCountryDiscounts(
     }
   });
 
-  // await updateCountryDiscountsDb(deleteIds, insert, { productId: id, userId });
+  await updateCountryDiscountsDb(deleteIds, insert, { productId: id, userId });
 
   return { error: false, message: "Country discounts saved" };
 }

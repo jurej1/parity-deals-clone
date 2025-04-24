@@ -58,7 +58,7 @@ export function CountryDiscountsForm({
     values: z.infer<typeof productCountryDiscountsSchema>
   ) {
     const data = await updateCountryDiscounts(productId, values);
-    if (data?.message) {
+    if (data.message) {
       toast(data.error ? "Error" : "Success", {
         description: data.message,
       });
@@ -73,7 +73,7 @@ export function CountryDiscountsForm({
       >
         {countryGroups.map((group, index) => {
           return (
-            <Card key={group.id}>
+            <Card key={index}>
               <CardContent className="flex gap-16 items-center">
                 <div>
                   <h2 className="text-muted-foreground text-sm font-semibold mb-2">
@@ -104,9 +104,10 @@ export function CountryDiscountsForm({
                                 className="w-24"
                                 type="number"
                                 value={field.value ?? ""}
-                                onChangeCapture={(e) =>
-                                  field.onChange(e.currentTarget.valueAsNumber)
-                                }
+                                onChangeCapture={(e) => {
+                                  // TODO throwing issue expcted number got string
+                                  field.onChange(e.currentTarget.value);
+                                }}
                                 min="0"
                                 max="100"
                               />

@@ -1,4 +1,5 @@
 import { CountryDiscountsForm } from "@/app/dashboard/_components/forms/CountryDiscountsForm";
+import { ProductCustomizationForm } from "@/app/dashboard/_components/forms/ProductCustomizationForm";
 import { ProductDetailsForm } from "@/app/dashboard/_components/forms/ProductDetailsForm";
 import PageWithBackButton from "@/app/dashboard/_components/PageWithBackButton";
 import {
@@ -10,7 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { clearFullCache } from "@/lib/cache";
-import { getProduct, getProductCountryGroups } from "@/server/db/products";
+import {
+  getProduct,
+  getProductCountryGroups,
+  getProductCustomization,
+} from "@/server/db/products";
+import { canCustomizeBanner, canRemoveBranding } from "@/server/permissions";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
@@ -46,7 +52,9 @@ export default async function EditProductPage({
         <TabsContent value="country">
           <CountryTab productId={product.id} userId={userId} />
         </TabsContent>
-        <TabsContent value="customization">Customization</TabsContent>
+        <TabsContent value="customization">
+          <CustomizationTab productId={product.id} userId={userId} />
+        </TabsContent>
       </Tabs>
     </PageWithBackButton>
   );
@@ -101,6 +109,33 @@ async function CountryTab({
           />
         </CardContent>
       </CardHeader>
+    </Card>
+  );
+}
+
+async function CustomizationTab({
+  productId,
+  userId,
+}: {
+  productId: string;
+  userId: string;
+}) {
+  const customization = await getProductCustomization({ productId, userId });
+
+  if (customization == null) return notFound();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Banner Customization</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ProductCustomizationForm
+          customization={customization}
+          canRemoveBranding={await canRemoveBranding(userId)}
+          canCustomizeBanner={await canCustomizeBanner(userId)}
+        />
+      </CardContent>
     </Card>
   );
 }

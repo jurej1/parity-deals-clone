@@ -1,6 +1,12 @@
+import { subscriptionTiers } from "@/data/subscriptionTiers";
 import { db } from "@/drizzle/db";
 import { UserSubscriptionTable } from "@/drizzle/schema";
-import { CACHE_TAGS, revalidateDbCache } from "@/lib/cache";
+import {
+  CACHE_TAGS,
+  dbCache,
+  getUserTag,
+  revalidateDbCache,
+} from "@/lib/cache";
 
 export async function createUserSubscription(
   data: typeof UserSubscriptionTable.$inferInsert
@@ -25,4 +31,26 @@ export async function createUserSubscription(
   }
 
   return newSubscription;
+}
+
+export function getUserSubscription(userId: string) {
+  const cacheFn = dbCache(getUserSubscriptionInternal, {
+    tags: [getUserTag(userId, CACHE_TAGS.subscription)],
+  });
+
+  return cacheFn(userId);
+}
+
+async function getUserSubscriptionInternal(userId: string) {
+  return db.query.UserSubscriptionTable.findFirst({
+    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
+  });
+}
+
+export async function getUserSubscriptionTier(userId: string) {
+  const subsciption = await getUserSubscription(userId);
+
+  if (subsciption == null) throw new Error("User has no subscription");
+
+  return subscriptionTiers[subsciption.tier];
 }
